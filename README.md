@@ -49,4 +49,28 @@ review PR #3 里的 skill 改动
 
 `/review-skill` 是推荐的统一触发写法，用于让 AI 明确进入 Skill Reviewer 的评审流程；它本身不是由 CLI 或程序注册的命令。
 
+## 如何确认 Skill 已触发
+
+当 Skill Reviewer 被触发并开始执行时，AI 必须在首次实质性评审输出中显示：
+
+```text
+Skill activated: skill-reviewer
+Review mode: independent
+Review target: <当前评审对象>
+```
+
+例如评审 PR #123 时：
+
+```text
+Skill activated: skill-reviewer
+Review mode: independent
+Review target: PR #123
+```
+
+看到 `Skill activated: skill-reviewer`，即可确认 AI 已进入本 Skill 的评审流程。
+
+这三个标记只表示 Skill 已触发并开始执行，不代表评审完成，也不代表评审对象已经通过。
+
+如果没有触发本 Skill，则不应输出 `Skill activated: skill-reviewer`。
+
 详细触发规则和完整评审流程见 [`SKILL.md`](./SKILL.md)。
