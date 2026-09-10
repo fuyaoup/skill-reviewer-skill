@@ -4,32 +4,7 @@
 
 ## 触发条件
 
-只有当用户明确要求对 Skill 或其设计 / 实现进行 **review、audit、inspect、evaluate、评审或审计** 时，才应触发本 Skill。
-
-仅仅因为当前任务涉及 Skill，不应自动触发 Skill Reviewer。
-
-典型触发方式：
-
-```text
-review this skill
-review-skill <PR>
-audit this SKILL.md
-review this skill proposal
-review the implementation of this skill
-```
-
-中文也可以直接使用：
-
-```text
-review 这个 skill
-审查这个 SKILL.md
-评审这个 skill proposal
-review PR #3 里的 skill 改动
-审计这个 workflow skill
-检查这个 skill 是否可以正式采用
-```
-
-推荐统一使用：
+本 Skill **只通过一个显式命令触发**：
 
 ```text
 /review-skill <PR / 文件 / Proposal / Skill>
@@ -39,19 +14,40 @@ review PR #3 里的 skill 改动
 
 ```text
 /review-skill https://github.com/owner/repo/pull/123
+/review-skill SKILL.md
+/review-skill <Skill Proposal>
 ```
 
-或：
+除此之外，其他方式都不得触发 Skill Reviewer，包括：
 
 ```text
-/review-skill SKILL.md
+review this skill
+review-skill <PR>
+audit this SKILL.md
+review this skill proposal
+review the implementation of this skill
+review 这个 skill
+审查这个 SKILL.md
+评审这个 skill proposal
+review PR #3 里的 skill 改动
+审计这个 workflow skill
+/review-plan
+/review-implementation
+/review
 ```
 
-`/review-skill` 是推荐的统一触发写法，用于让 AI 明确进入 Skill Reviewer 的评审流程；它本身不是由 CLI 或程序注册的命令。
+也就是说：
+
+- 没有前导 `/` 的 `review-skill` 不触发；
+- 自然语言中的 review / audit / inspect / evaluate / 评审 / 审计 不触发；
+- 即使对象明确是 Skill、SKILL.md、Skill Proposal 或包含 Skill 改动的 PR，也不能通过语义推断自动触发；
+- `/review-plan`、`/review-implementation` 和其他项目级 review workflow 与本 Skill 完全分离。
+
+`/review-skill` 用于让 AI 明确进入 Skill Reviewer 评审流程；它本身不是由 CLI 或程序注册的命令。
 
 ## 如何确认 Skill 已触发
 
-当 Skill Reviewer 被触发并开始执行时，AI 必须在首次实质性评审输出中显示：
+当 Skill Reviewer 被 `/review-skill` 显式触发并开始执行时，AI 必须在首次实质性评审输出中显示：
 
 ```text
 Skill activated: skill-reviewer
@@ -71,11 +67,11 @@ Review target: PR #123
 
 这三个标记只表示 Skill 已触发并开始执行，不代表评审完成，也不代表评审对象已经通过。
 
-如果没有触发本 Skill，则不应输出 `Skill activated: skill-reviewer`。
+如果没有显式 `/review-skill`，则不应输出 `Skill activated: skill-reviewer`。
 
 ## PR 多轮 review
 
-传入 Pull Request 时，Skill Reviewer 不只检查当前 head，还会读取与 review、实现修订和设计决策有关的 PR history。
+通过 `/review-skill <Pull Request>` 触发 PR review 时，Skill Reviewer 不只检查当前 head，还会读取与 review、实现修订和设计决策有关的 PR history。
 
 多轮 review 以单条 comment / reply event 为状态单位，而不是以整个 thread 为单位。
 
