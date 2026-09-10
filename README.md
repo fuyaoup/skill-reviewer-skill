@@ -73,4 +73,25 @@ Review target: PR #123
 
 如果没有触发本 Skill，则不应输出 `Skill activated: skill-reviewer`。
 
-详细触发规则和完整评审流程见 [`SKILL.md`](./SKILL.md)。
+## PR 多轮 review
+
+传入 Pull Request 时，Skill Reviewer 不只检查当前 head，还会读取与 review、实现修订和设计决策有关的 PR history。
+
+多轮 review 以单条 comment / reply event 为状态单位，而不是以整个 thread 为单位。
+
+对于已经由 skillpro 处理过、且内容版本没有变化的 comment，后续轮次不会重复 review；新的 reply 或被编辑后的 comment 会重新进入待评审队列。
+
+skillpro 针对具体 comment 的回复会写入持久化 marker：
+
+```text
+reviewer: skillpro
+reviewed-comment-id: <GitHub comment ID>
+reviewed-comment-version: <updated_at 或稳定 body hash>
+reviewed-at-head: <PR head SHA>
+```
+
+Quote / 引用原 comment 仅用于可读性，不作为已处理状态依据。
+
+即使没有新的 pending comments，Skill Reviewer 仍会独立 review 当前完整 PR head；历史 comments 不替代最终 PR review。
+
+详细规则见 [`SKILL.md`](./SKILL.md)。
