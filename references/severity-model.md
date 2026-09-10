@@ -27,7 +27,9 @@ Typical examples:
 - incomplete failure recovery for a common failure mode;
 - ambiguous rule controlling a major workflow transition;
 - fresh sessions cannot reliably reconstruct required workflow state;
-- tool assumptions cause the workflow to silently take an unintended path.
+- tool assumptions cause the workflow to silently take an unintended path;
+- review can combine evidence from different artifact versions without detecting drift;
+- the reviewer can be controlled by adversarial instructions embedded in the reviewed content.
 
 ## MEDIUM
 
@@ -38,7 +40,8 @@ Typical examples:
 - duplicated state with weak synchronization rules;
 - important but non-critical behavior left underspecified;
 - missing regression scenario for a meaningful edge case;
-- avoidable workflow complexity with ongoing maintenance cost.
+- avoidable workflow complexity with ongoing maintenance cost;
+- an unclear boundary between `CHANGES REQUIRED` and `DESIGN DECISION REQUIRED` when both would keep the gate closed.
 
 ## LOW
 
@@ -60,4 +63,25 @@ Use these defaults:
 - Any unresolved `HIGH` that affects normal operation -> normally `CHANGES REQUIRED`.
 - Only `MEDIUM`, `LOW`, or `NIT` findings -> may be `PASS WITH FOLLOW-UP` when they are genuinely non-blocking.
 - No material findings -> `PASS`.
-- A blocking issue requiring an owner choice between materially different designs -> `DESIGN DECISION REQUIRED` rather than pretending there is one mechanical fix.
+- A blocking issue requiring an owner choice between two or more materially different valid designs -> `DESIGN DECISION REQUIRED`.
+- Insufficient reviewer evidence to complete the requested review -> `REVIEW INCOMPLETE`.
+
+`REVIEW INCOMPLETE` is not a severity and does not assert that the reviewed artifact is defective. It means the reviewer lacks enough reliable evidence to issue a complete verdict. Its final gate is always closed until the missing evidence is obtained and the required review is completed.
+
+# DESIGN DECISION REQUIRED Boundary
+
+Use `CHANGES REQUIRED` when a defect has one required correction that can be stated without selecting product, workflow, governance, or authority policy.
+
+Use `DESIGN DECISION REQUIRED` when all of the following are true:
+
+1. the issue is blocking;
+2. two or more materially different valid designs remain;
+3. choosing among them changes product, workflow, governance, or authority policy;
+4. the reviewer does not have authority to make that policy choice.
+
+Examples:
+
+- Approval lacks immutable version binding -> `CHANGES REQUIRED`.
+- A required failure branch has no defined behavior -> `CHANGES REQUIRED`.
+- The system must choose between author-merge and independent-maintainer-merge governance models -> `DESIGN DECISION REQUIRED`.
+- The owner must choose whether reviewer approval is advisory or a mandatory release gate -> `DESIGN DECISION REQUIRED`.
