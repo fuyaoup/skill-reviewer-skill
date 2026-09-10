@@ -27,6 +27,32 @@ reviewer: skillpro
 
 如果只是在聊天中展示 review、尚未向 PR 发布评论，则不强制使用该 PR comment 前缀。
 
+## 针对单条 PR Comment 的回复格式
+
+当 skillpro 对某一条具体 PR comment / reply 做增量 review 时，回复必须包含持久化 marker，用于后续轮次判断该 comment 的当前版本是否已经处理。
+
+格式：
+
+```text
+reviewer: skillpro
+reviewed-comment-id: <GitHub comment ID>
+reviewed-comment-version: <updated_at 或稳定 body hash>
+reviewed-at-head: <PR head SHA>
+
+<判断与建议>
+```
+
+要求：
+
+- `reviewed-comment-id` 必须指向实际被处理的 comment / reply，而不是仅指向 thread；
+- `reviewed-comment-version` 必须能够区分 comment 被编辑前后的不同版本；
+- `reviewed-at-head` 必须记录该判断所对照的 PR head SHA；
+- `reviewed-at-head` 不作为 comment 去重键；
+- Quote / 引用原 comment 可选，但不能替代上述 marker；
+- skillpro 自己的 marker reply 不应再次进入待评审队列。
+
+如果工具只允许回复 inline thread 的顶层 comment，而实际处理的是 thread 中某个 reply，仍应把 `reviewed-comment-id` 写成那个实际 reply 的 ID。
+
 ## 必选章节
 
 每次完整 review 都必须（MUST）包含：
@@ -150,7 +176,7 @@ filename、branch name、URL、document title 等 mutable identifier 可以作�
 
 列出能够实质提高对被评审规则信心的测试。
 
-优先覆盖：blocking findings、failure paths、handoff、stale state、permissions、interruption recovery、self-approval、adversarial embedded instructions、incomplete evidence、version drift。
+优先覆盖：blocking findings、failure paths、handoff、stale state、permissions、interruption recovery、self-approval、adversarial embedded instructions、incomplete evidence、version drift，以及多轮 PR review 中的新 comment、已编辑 comment、旧 thread 新 reply 和 comment 去重行为。
 
 如果没有额外测试能够实质提高信心，则省略本章节。
 
@@ -174,7 +200,8 @@ filename、branch name、URL、document title 等 mutable identifier 可以作�
 - 哪些 previous findings 已解决；
 - 哪些仍未解决；
 - 是否出现 regression 或 new findings；
-- 新的 reviewed version identity。
+- 新的 reviewed version identity；
+- 对 PR review，本轮新增或被编辑的 review-relevant comment 是否已经处理。
 
 artifact 发生变化后，在没有重新 review 新的完整状态之前，绝不能继承之前的 `PASS` 或 `PASS WITH FOLLOW-UP`。
 
