@@ -1,8 +1,8 @@
 ---
 name: skill-reviewer-skill
-description: 独立评审 AI Skill、Agent Skill、Workflow Skill、Prompt Skill，以及包含 Skill 变更的 Pull Request。用户明确要求 review、audit、inspect、evaluate、评审或审计 Skill 时使用。
+description: 仅当用户显式调用 `/review-skill` 命令时，独立评审 AI Skill、Agent Skill、Workflow Skill、Prompt Skill，以及包含 Skill 变更的 Pull Request。自然语言 review、audit、inspect、evaluate、评审、审计请求，普通 PR review，以及其他 slash command 均不得触发本 Skill。
 metadata:
-  version: "1.1.0"
+  version: "1.2.0"
 ---
 
 # Skill Reviewer（Skill 评审器）
@@ -17,17 +17,38 @@ metadata:
 
 ## 触发条件
 
-当用户明确要求 review、audit、inspect、evaluate 某个 Skill、Skill Proposal、Skill Implementation，或包含 Skill 改动的 Pull Request 时，使用本 Skill。
+本 Skill 只有一个触发条件：用户显式调用 `/review-skill` 命令。
 
-典型请求包括：
+触发判定必须（MUST）满足：
 
-- `review this skill`
-- `review-skill <PR>`
-- `audit this SKILL.md`
-- `review this skill proposal`
-- `review the implementation of this skill`
+- 用户调用的命令 token 必须精确为 `/review-skill`；
+- `/review-skill` 后可以跟 Pull Request URL、文件、Proposal、Skill 或其他明确评审对象；
+- `review-skill`（没有前导 `/`）、`/review-skill-*`、拼写近似命令以及任何自然语言表达都不得触发本 Skill；
+- `/review-plan`、`/review-implementation`、`/review` 或其他 slash command 不得触发本 Skill；
+- 即使自然语言请求明确要求 review、audit、inspect、evaluate、评审或审计某个 Skill，只要没有显式 `/review-skill` 命令，也不得使用本 Skill。
 
-不要仅因为某个任务涉及 Skill 就自动使用本 Skill。用户必须是在请求评审或审计工作。
+允许触发的示例：
+
+```text
+/review-skill https://github.com/owner/repo/pull/123
+/review-skill SKILL.md
+/review-skill <Skill Proposal>
+```
+
+以下请求不得触发本 Skill：
+
+```text
+review this skill
+review-skill <PR>
+audit this SKILL.md
+评审这个 skill
+审查这个 workflow skill
+review PR #3 里的 skill 改动
+/review-plan
+/review-implementation
+```
+
+如果没有显式 `/review-skill`，不得通过语义推断、自然语言同义词、当前 artifact 类型或“用户显然想做 Skill review”等理由自动进入 Skill Reviewer 流程。
 
 ## 触发可见性
 
