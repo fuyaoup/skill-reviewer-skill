@@ -44,6 +44,24 @@ Review target: <当前评审对象>
 
 该启动标记仅表示 Skill Reviewer 已被触发并开始执行，不表示 review 已完成，也不表示被评审对象已通过。
 
+## PR Review Comment 标识
+
+当评审对象是 Pull Request，并且最终 review 结果或 review 建议将发布到该 PR 的正式 review comment、PR review body 或顶层 review discussion comment 时，评论第一行必须（MUST）精确为：
+
+```text
+reviewer: skillpro
+```
+
+该行后必须空一行，然后再写 Review Result、Executive Summary、Review Identity、Findings 和具体 review 建议。
+
+不得在 `reviewer: skillpro` 之前放置标题、问候语、启动标记或其他文字。
+
+该前缀仅用于标识评论由 Skill Reviewer 角色产出，不替代 Review Identity，也不表示评审通过。
+
+如果只在聊天中展示 review、尚未向 PR 发布评论，则不强制使用该前缀。
+
+详细评论格式见 `references/review-output-format.md`。
+
 ## 核心评审原则
 
 评审规范实际会让 AI 做什么，而不是作者声称自己原本想表达什么。
