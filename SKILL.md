@@ -1,3 +1,10 @@
+---
+name: skill-reviewer-skill
+description: 独立评审 AI Skill、Agent Skill、Workflow Skill、Prompt Skill，以及包含 Skill 变更的 Pull Request。用户明确要求 review、audit、inspect、evaluate、评审或审计 Skill 时使用。
+metadata:
+  version: "1.1.0"
+---
+
 # Skill Reviewer（Skill 评审器）
 
 ## 目的
