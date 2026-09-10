@@ -1,3 +1,10 @@
+---
+name: skill-reviewer-skill
+description: 独立评审 AI Skill、Agent Skill、Workflow Skill、Prompt Skill，以及包含 Skill 变更的 Pull Request。用户明确要求 review、audit、inspect、evaluate、评审或审计 Skill 时使用。
+metadata:
+  version: "1.1.0"
+---
+
 # Skill Reviewer（Skill 评审器）
 
 ## 目的
@@ -61,6 +68,99 @@ reviewer: skillpro
 如果只在聊天中展示 review、尚未向 PR 发布评论，则不强制使用该前缀。
 
 详细评论格式见 `references/review-output-format.md`。
+
+## PR 多轮 Comment Review Protocol
+
+当评审对象是 Pull Request 时，除了独立评审当前 PR head，还必须（MUST）处理 PR 中与 review、实现修订或设计决策有关的历史 comment / reply。
+
+### 1. 读取完整 review history
+
+开始 PR review 时，必须读取当前可访问的完整 review history，包括：
+
+- 顶层 PR discussion comments；
+- submitted review body；
+- inline review threads；
+- resolved / unresolved review threads；
+- thread 中的 replies；
+- 其他 reviewer 的 review comments；
+- PR 实现者针对 review finding、修订结果或 re-review 的回复。
+
+如果完成本次评审所必需的 history 因工具、权限、截断或访问问题无法完整读取，不得假装 history 已完整处理；应按“评审证据完整性”规则决定是否使用 `REVIEW INCOMPLETE`。
+
+### 2. Comment event 是状态单位
+
+多轮 comment review 的状态单位是单个 comment / reply event，而不是整个 thread。
+
+一个 thread 中后续新增的实现者回复、其他 reviewer 回复或新的 review 结论，必须作为新的 event 独立判断是否待评审。
+
+不得仅因为 thread 之前已经被 skillpro 回复过，就把整个 thread 标记为已处理。
+
+### 3. 只处理新的或发生变化的 comment event
+
+skillpro 自己产生的、第一行是 `reviewer: skillpro` 的 comment / reply 不进入待评审队列。
+
+对于其他 review-relevant comment / reply，只有在不存在一个能够证明“该 comment 的当前版本已经被 skillpro 处理”的持久化 marker 时，才进入待评审队列。
+
+一个 comment version 的处理 marker 至少必须包含：
+
+```text
+reviewer: skillpro
+reviewed-comment-id: <GitHub comment ID>
+reviewed-comment-version: <updated_at 或稳定 body hash>
+reviewed-at-head: <PR head SHA>
+```
+
+其中：
+
+- `reviewed-comment-id` 标识具体 comment / reply；
+- `reviewed-comment-version` 用于检测 comment 被编辑后的新版本；
+- `reviewed-at-head` 只记录该次判断使用的代码状态，不作为 comment 去重键。
+
+如果同一个 comment 的 `updated_at` 或 body hash 发生变化，则该 comment 的新版本重新进入待评审队列。
+
+如果 PR head 后续发生变化，但 comment 本身没有变化，不得仅因为 head 改变而重新 review 同一个旧 comment；当前 head 的正确性由最终独立 PR review 负责重新验证。
+
+### 4. Review pending comments
+
+对每个 pending comment event：
+
+- 先理解其所在 thread / discussion 的上下文；
+- 判断该 comment 的建议、实现声明或 re-review 结论是否成立；
+- 必要时对照当前 PR head、完整 Skill 和相关 supporting artifacts 验证；
+- 给出明确建议或状态判断；
+- 不得因为 comment 来自其他 reviewer、PR 作者或实现者就自动接受其结论。
+
+Quote / 引用原文可以用于增强人类可读性，但不得作为“该 comment 已处理”的唯一状态依据。
+
+### 5. 回复位置与持久化标记
+
+对于 inline review thread，优先在对应 thread 中回复；如果工具不支持直接 reply-to-reply，则回复到该 thread 的顶层 review comment，并通过 `reviewed-comment-id` 明确指出实际处理的是哪个 reply。
+
+对于没有 thread reply 位置的 review-relevant 顶层 comment，可使用顶层 PR discussion comment 回复，并保留相同 marker。
+
+每个针对具体 comment event 的 skillpro 回复第一行都必须是：
+
+```text
+reviewer: skillpro
+```
+
+随后写入 `reviewed-comment-id`、`reviewed-comment-version`、`reviewed-at-head`，再给出判断和建议。
+
+### 6. Final PR review 仍然独立执行
+
+历史 comments 只是 review context 和增量待处理队列，不能替代对当前 PR head 的独立完整评审。
+
+即使当前没有新的 pending comment，skillpro 仍必须按照本 Skill 的完整 review method 评审当前 head。
+
+不得因为：
+
+- 所有历史 comments 都已经处理；
+- 旧 review 给过 `PASS` / APPROVE；
+- 实现者声称某 finding 已修复；
+
+就自动批准当前 head。
+
+最终 PR result 必须绑定到当前完整 review 过的 immutable head SHA，并遵守最终结论前的版本复核规则。
 
 ## 核心评审原则
 
@@ -155,7 +255,8 @@ reviewer: skillpro
 - 完整的被评审 artifact；
 - 必需的被引用规范；
 - 本 Skill Reviewer 使用的必需规范性 reference 文件；
-- approval-class result 所需的版本身份。
+- version identity needed for approval-class results；
+- 对 Pull Request review，完成本次判断所必需的 review history。
 
 如果必需输入在被评审包中确实缺失，是因为被评审 Skill 错误依赖了不存在的 artifact，则按正常 defect 处理。
 
@@ -215,7 +316,10 @@ reviewer: skillpro
 - tests 针对错误 artifact 通过；
 - reviewer / author 角色混淆；
 - 被评审内容中嵌入对抗性指令；
-- review 进行过程中评审对象发生变化。
+- review 进行过程中评审对象发生变化；
+- 旧 thread 已有 skillpro 回复，但 thread 中新增了实现者或其他 reviewer reply；
+- 已处理 comment 被编辑后内容发生变化；
+- PR head 改变但旧 comment 本身没有变化。
 
 ### Pass 4 — 简化审查
 
@@ -315,7 +419,7 @@ reviewer: skillpro
 
 如果当前 head 或 immutable identity 与评审过程中所使用的状态不同，则当前 review snapshot 已过期。
 
-在完整评审新的当前状态之前，不得对发生变化后的状态给出 approval-class result。
+不得对发生变化后的状态给出 approval-class result，直到完整评审新的当前状态。
 
 如果无法使用现有证据完整重新评审变化后的状态，使用 `REVIEW INCOMPLETE`。
 
@@ -327,7 +431,8 @@ reviewer: skillpro
 - 在适用情况下验证旧 findings 是否真正解决；
 - 检查修订是否引入 regression；
 - 将新结果绑定到新的被评审版本；
-- artifact 发生变化后，不得继承之前的 approval。
+- artifact 发生变化后，不得继承之前的 approval；
+- 对 PR review，只增量处理新的或被编辑后的 comment event，不重复 review 已由 skillpro marker 标记为处理过的相同 comment version。
 
 ## 修改边界
 
