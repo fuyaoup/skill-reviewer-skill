@@ -1,10 +1,10 @@
-# Review Output Format
+# 评审输出格式
 
-Use this structure for completed reviews.
+已完成的 review 使用以下结构。
 
-## Required Sections
+## 必选章节
 
-Every completed review MUST include:
+每次完整 review 都必须（MUST）包含：
 
 1. `Review Result`
 2. `Executive Summary`
@@ -12,19 +12,19 @@ Every completed review MUST include:
 4. `Findings`
 5. `Final Gate`
 
-The following sections are conditional and should be included only when meaningful:
+以下章节为条件性章节，仅在有实际意义时输出：
 
 - `Missing Scenarios`
 - `Overengineering / Simplification`
 - `Test Recommendations`
-- `Incomplete Evidence` — required when result is `REVIEW INCOMPLETE`
-- `Re-review Status` — required for re-review of a revised state
+- `Incomplete Evidence` — 当结果为 `REVIEW INCOMPLETE` 时必须输出
+- `Re-review Status` — 对修订后的 state 进行重新 review 时必须输出
 
-Do not create filler sections merely to preserve visual symmetry.
+不要为了保持格式对称而制造无意义章节。
 
 ## Review Result
 
-One of:
+必须为以下之一：
 
 - `PASS`
 - `PASS WITH FOLLOW-UP`
@@ -34,123 +34,123 @@ One of:
 
 ## Executive Summary
 
-State the current maturity of the reviewed skill and the most important conclusion.
+说明当前被评审 Skill 的成熟度，以及最重要的结论。
 
-Keep this concise and evidence-based.
+保持简洁，并以证据为基础。
 
 ## Review Identity
 
-Record enough information to identify the exact reviewed state.
+记录足够的信息，以唯一识别本次实际评审的 exact state。
 
-For repository or pull-request reviews, include when applicable:
+对于 repository 或 Pull Request review，在适用时包括：
 
-- repository;
-- relevant path;
-- PR number;
-- base revision;
-- reviewed head commit SHA.
+- repository；
+- relevant path；
+- PR number；
+- base revision；
+- reviewed head commit SHA。
 
-For standalone artifacts, include at least one immutable identifier such as:
+对于 standalone artifact，至少包含一个 immutable identifier，例如：
 
-- content hash;
-- immutable artifact ID;
-- explicit version tied to immutable content.
+- content hash；
+- immutable artifact ID；
+- 与不可变内容绑定的明确版本。
 
-Mutable identifiers such as filenames, branch names, URLs, or document titles may be included for context but are not sufficient approval identity by themselves.
+filename、branch name、URL、document title 等 mutable identifier 可以作为上下文，但单独使用不足以形成 approval identity。
 
-If immutable identity cannot be established because the reviewer lacks necessary evidence, the result cannot be `PASS` or `PASS WITH FOLLOW-UP`; use `REVIEW INCOMPLETE` unless the lack of version identity is itself a defect in the reviewed workflow.
+如果因为 reviewer 缺少必要证据而无法建立 immutable identity，则结果不能是 `PASS` 或 `PASS WITH FOLLOW-UP`；除非“缺少版本身份”本身就是被评审 workflow 的 defect，否则应使用 `REVIEW INCOMPLETE`。
 
-Every approval-class result MUST state that it applies only to the identified reviewed state.
+所有 approval-class result 都必须（MUST）明确声明：该结果只适用于所记录的被评审状态。
 
 ## Findings
 
-If material findings exist, use the following structure for each finding:
+如果存在 material findings，每个 finding 使用以下结构：
 
-### [SEVERITY] FINDING-ID — Title
+### [SEVERITY] FINDING-ID — 标题
 
 **Location**
 
-Exact section, rule, file, or artifact location.
+精确章节、规则、文件或 artifact 位置。
 
 **Problem**
 
-What is wrong or missing.
+具体哪里有问题或缺失。
 
 **Why it matters**
 
-The operational consequence.
+实际运行上的影响。
 
 **Failure scenario**
 
-At least one realistic scenario showing how the defect can fail in practice.
+至少一个现实场景，说明该 defect 会如何导致失败。
 
 **Required correction**
 
-The specific change required to resolve the finding.
+解决该 finding 所必需的具体修改。
 
-Do not create findings for pure style preferences unless they materially affect execution.
+不要为纯 style preference 创建 finding，除非它会实质影响执行。
 
-If there are no material findings, write:
+如果没有 material findings，写：
 
 `No material findings.`
 
-Do not omit the `Findings` section entirely.
+不得完全省略 `Findings` 章节。
 
 ## Incomplete Evidence
 
-This section is REQUIRED when the result is `REVIEW INCOMPLETE`.
+当结果为 `REVIEW INCOMPLETE` 时，本章节必须（REQUIRED）输出。
 
-Record:
+记录：
 
-- evidence successfully reviewed;
-- evidence unavailable, unreadable, truncated, or otherwise incomplete;
-- why the evidence could not be verified;
-- what evidence is required to resume or complete the review.
+- 已成功 review 的 evidence；
+- 不可用、不可读、被截断或其他不完整的 evidence；
+- 无法验证这些 evidence 的原因；
+- 恢复或完成 review 所需的 evidence。
 
-Do not present reviewer-side evidence failure as a defect in the reviewed artifact unless the artifact itself incorrectly depends on missing or nonexistent material.
+除非 artifact 本身错误依赖了缺失或不存在的材料，否则不要把 reviewer-side evidence failure 描述成被评审 artifact 的 defect。
 
 ## Missing Scenarios
 
-List important scenarios the skill does not currently cover.
+列出当前 Skill 没有覆盖的重要场景。
 
-Omit this section if there are no meaningful missing scenarios.
+如果没有 meaningful missing scenarios，则省略本章节。
 
 ## Overengineering / Simplification
 
-Identify unnecessary states, artifacts, approvals, repeated operations, or rules that can be simplified without reducing reliability.
+指出不必要的 state、artifact、approval、重复操作，或可以在不降低 reliability 的情况下简化的规则。
 
-Omit this section when there is no meaningful simplification opportunity.
+如果没有 meaningful simplification opportunity，则省略本章节。
 
 ## Test Recommendations
 
-List tests that would materially increase confidence in the reviewed rules.
+列出能够实质提高对被评审规则信心的测试。
 
-Prioritize tests for blocking findings, failure paths, handoff, stale state, permissions, interruption recovery, self-approval, adversarial embedded instructions, incomplete evidence, and version drift.
+优先覆盖：blocking findings、failure paths、handoff、stale state、permissions、interruption recovery、self-approval、adversarial embedded instructions、incomplete evidence、version drift。
 
-Omit this section when no additional test would materially improve confidence.
+如果没有额外测试能够实质提高信心，则省略本章节。
 
 ## Final Gate
 
-State explicitly:
+必须明确说明：
 
-- whether the skill may proceed to the next stage;
-- which findings are blocking, if any;
-- what must happen next;
-- whether the complete revised artifact must be re-reviewed;
-- whether the evidence set was complete;
-- the exact reviewed identity to which the result applies.
+- Skill 是否可以进入下一阶段；
+- 存在哪些 blocking findings（如有）；
+- 下一步必须做什么；
+- 是否必须重新 review 完整的 revised artifact；
+- evidence set 是否完整；
+- 本次 result 适用于哪个 exact reviewed identity。
 
-`REVIEW INCOMPLETE` always closes the gate.
+`REVIEW INCOMPLETE` 始终关闭 gate。
 
 # Re-review Status
 
-For a revision, this section is REQUIRED and must state:
+对于 revision review，本章节必须输出，并说明：
 
-- which previous findings are resolved;
-- which remain unresolved;
-- any regressions or new findings;
-- the identity of the newly reviewed version.
+- 哪些 previous findings 已解决；
+- 哪些仍未解决；
+- 是否出现 regression 或 new findings；
+- 新的 reviewed version identity。
 
-Never inherit a previous `PASS` or `PASS WITH FOLLOW-UP` after the artifact changes without reviewing the new complete state.
+artifact 发生变化后，在没有重新 review 新的完整状态之前，绝不能继承之前的 `PASS` 或 `PASS WITH FOLLOW-UP`。
 
-If the reviewer authored or materially modified the current state, clearly state that the review is diagnostic and cannot serve as independent approval.
+如果 reviewer 参与编写或实质性修改了当前 state，必须明确说明：本次 review 属于 diagnostic review，不能作为 independent approval。
