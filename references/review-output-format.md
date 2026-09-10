@@ -2,6 +2,31 @@
 
 已完成的 review 使用以下结构。
 
+## PR Review Comment 前缀
+
+当评审对象是 Pull Request，并且评审结果或评审建议将发布到该 PR 的正式 review comment、PR review body 或顶层 review discussion comment 时，评论正文第一行必须（MUST）精确写为：
+
+```text
+reviewer: skillpro
+```
+
+该行之后空一行，再开始写 `Review Result`、`Executive Summary`、`Review Identity`、`Findings` 和其他评审内容。
+
+标准格式：
+
+```text
+reviewer: skillpro
+
+## Review Result
+...
+```
+
+不得把其他文字、标题、问候语或启动标记放在 `reviewer: skillpro` 之前。
+
+该前缀用于明确标识评论由 Skill Reviewer 角色产出，不替代 `Review Identity` 中的版本身份，也不表示 review 已通过。
+
+如果只是在聊天中展示 review、尚未向 PR 发布评论，则不强制使用该 PR comment 前缀。
+
 ## 必选章节
 
 每次完整 review 都必须（MUST）包含：
