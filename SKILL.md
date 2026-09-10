@@ -22,6 +22,28 @@
 
 不要仅因为某个任务涉及 Skill 就自动使用本 Skill。用户必须是在请求评审或审计工作。
 
+## 触发可见性
+
+当本 Skill 被触发并开始执行评审时，评审者必须（MUST）在首次实质性评审输出中明确显示以下三行启动标记：
+
+```text
+Skill activated: skill-reviewer
+Review mode: independent
+Review target: <当前评审对象>
+```
+
+其中：
+
+- `Skill activated` 的值固定为 `skill-reviewer`；
+- `Review mode` 的值固定为 `independent`；
+- `Review target` 必须填写当前实际评审对象，例如 `PR #123`、`SKILL.md`、`Skill Proposal` 或其他明确对象。
+
+如果评审对象在启动时尚不能唯一确定，应在 `Review target` 中写明当前可识别对象，并在后续 `Review Identity` 中补充完整版本身份；不得伪造不存在的信息。
+
+如果本 Skill 没有被触发，不得输出 `Skill activated: skill-reviewer` 标记。
+
+该启动标记仅表示 Skill Reviewer 已被触发并开始执行，不表示 review 已完成，也不表示被评审对象已通过。
+
 ## 核心评审原则
 
 评审规范实际会让 AI 做什么，而不是作者声称自己原本想表达什么。
