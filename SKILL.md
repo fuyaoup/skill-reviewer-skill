@@ -1,8 +1,8 @@
 ---
 name: skill-reviewer-skill
-description: 仅当用户显式调用 `/review-skill` 命令时，独立评审 AI Skill、Agent Skill、Workflow Skill、Prompt Skill，以及包含 Skill 变更的 Pull Request。自然语言 review、audit、inspect、evaluate、评审、审计请求，普通 PR review，以及其他 slash command 均不得触发本 Skill。
+description: 仅当用户显式调用 `/review-skill` 命令首次触发时，独立评审 AI Skill、Agent Skill、Workflow Skill、Prompt Skill，以及包含 Skill 变更的 Pull Request；同一会话中对同一 target 的明确 re-review continuation 可继续使用本 Skill。自然语言 review、audit、inspect、evaluate、评审、审计请求，普通 PR review，以及其他 slash command 均不得首次触发本 Skill。
 metadata:
-  version: "1.2.1"
+  version: "1.3.0"
 ---
 
 # Skill Reviewer（Skill 评审器）
@@ -17,17 +17,17 @@ metadata:
 
 ## 触发条件
 
-本 Skill 只有一个触发条件：用户显式调用 `/review-skill` 命令。
+本 Skill 的首次触发只有一个条件：用户显式调用 `/review-skill` 命令。
 
-触发判定必须（MUST）满足：
+首次触发判定必须（MUST）满足：
 
 - 用户调用的命令 token 必须精确为 `/review-skill`；
 - `/review-skill` 后可以跟 Pull Request URL、文件、Proposal、Skill 或其他明确评审对象；
-- `review-skill`（没有前导 `/`）、`/review-skill-*`、拼写近似命令以及任何自然语言表达都不得触发本 Skill；
-- `/review-plan`、`/review-implementation`、`/review` 或其他 slash command 不得触发本 Skill；
-- 即使自然语言请求明确要求 review、audit、inspect、evaluate、评审或审计某个 Skill，只要没有显式 `/review-skill` 命令，也不得使用本 Skill。
+- `review-skill`（没有前导 `/`）、`/review-skill-*`、拼写近似命令以及任何自然语言表达都不得首次触发本 Skill；
+- `/review-plan`、`/review-implementation`、`/review` 或其他 slash command 不得首次触发本 Skill；
+- 即使自然语言请求明确要求 review、audit、inspect、evaluate、评审或审计某个 Skill，只要当前会话此前没有通过显式 `/review-skill` 激活对应 target，也不得使用本 Skill。
 
-允许触发的示例：
+允许首次触发的示例：
 
 ```text
 /review-skill https://github.com/owner/repo/pull/123
@@ -35,7 +35,7 @@ metadata:
 /review-skill <Skill Proposal>
 ```
 
-以下请求不得触发本 Skill：
+以下请求不得首次触发本 Skill：
 
 ```text
 review this skill
@@ -48,7 +48,39 @@ review PR #3 里的 skill 改动
 /review-implementation
 ```
 
-如果没有显式 `/review-skill`，不得通过语义推断、自然语言同义词、当前 artifact 类型或“用户显然想做 Skill review”等理由自动进入 Skill Reviewer 流程。
+如果当前会话此前没有通过显式 `/review-skill` 激活对应 review target，不得通过语义推断、自然语言同义词、当前 artifact 类型或“用户显然想做 Skill review”等理由自动进入 Skill Reviewer 流程。
+
+## 会话内 Review 连续性
+
+当 `/review-skill <target>` 已在当前会话中成功触发后，只要后续请求明确是在继续评审同一个 target，就继续使用 Skill Reviewer；用户无需再次输入 `/review-skill`。
+
+应视为 continuation 的典型请求包括：
+
+```text
+继续 review
+re-review 最新改动
+PR 更新了，再检查
+检查新的 review comments
+验证之前的 findings 是否解决
+重新 review 当前 head
+```
+
+连续性规则：
+
+- continuation 只对当前会话中已经显式激活的同一个 review target 有效；
+- target 的 branch/head/content 可以变化，这正是 re-review 的常见场景，但 logical target 必须仍是同一个 PR、Skill、Proposal 或 artifact；
+- continuation 仍必须执行本 Skill 的完整 re-review、version identity、comment history、marker protocol 和 gate 规则；不得因为是同一会话就继承旧 approval；
+- 被评审 Skill 自己定义的 `/review-plan`、`/review-implementation`、full re-review 或其他 review contract，只作为被评审规范和 acceptance criteria 使用；它们不得替代或覆盖 Skill Reviewer 的外层 review method、severity、result、marker 或 gate 规则。
+
+以下情况不得自动延续，必须重新显式调用 `/review-skill <target>`：
+
+- 开启新会话；
+- 切换到另一个 PR、Skill、Proposal 或 artifact；
+- 当前消息无法明确判断是否要求继续 review，例如仅说“已经更新好了”；
+- 用户明确结束、取消或离开当前 review；
+- 之前的 review target 已无法可靠识别。
+
+如果 continuation 的 target 存在歧义，不得自行猜测，应要求用户明确 target 或重新使用 `/review-skill <target>`。
 
 ## 触发可见性
 
@@ -69,6 +101,8 @@ Review target: <当前评审对象>
 如果评审对象在启动时尚不能唯一确定，应在 `Review target` 中写明当前可识别对象，并在后续 `Review Identity` 中补充完整版本身份；不得伪造不存在的信息。
 
 如果本 Skill 没有被触发，不得输出 `Skill activated: skill-reviewer` 标记。
+
+会话内 continuation 不要求重复输出启动标记；该标记用于表示本 Skill 在当前 review flow 中已经开始执行，而不是每轮 re-review 的必选前缀。
 
 该启动标记仅表示 Skill Reviewer 已被触发并开始执行，不表示 review 已完成，也不表示被评审对象已通过。
 
@@ -376,7 +410,9 @@ Gate 规则：
 - 已处理 comment 被编辑后内容发生变化；
 - PR head 改变但旧 comment 本身没有变化；
 - comment 已完成分析但 marker 写入失败；
-- overall PR review 尝试在 pending comment event 尚未持久化处理前发布。
+- overall PR review 尝试在 pending comment event 尚未持久化处理前发布；
+- 同一会话中用户明确要求 re-review 同一 target，但 reviewer 错误要求重新输入 `/review-skill`；
+- 新会话或 target 已切换，却错误继承之前会话的 activation。
 
 ### Pass 4 — 简化审查
 
@@ -492,7 +528,8 @@ Gate 规则：
 - 将新结果绑定到新的被评审版本；
 - artifact 发生变化后，不得继承之前的 approval；
 - 对 PR review，只增量处理新的或被编辑后的 comment event，不重复 review 已由 skillpro marker 标记为处理过的相同 comment version；
-- 对 PR review，在发布整体 re-review 结果前必须重新通过 Comment Queue Gate。
+- 对 PR review，在发布整体 re-review 结果前必须重新通过 Comment Queue Gate；
+- 如果当前会话已通过 `/review-skill` 激活同一 target，则明确的 re-review continuation 不要求再次触发命令；新会话或 target 切换则必须重新显式触发。
 
 ## 修改边界
 
