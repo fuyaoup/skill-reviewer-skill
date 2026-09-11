@@ -4,7 +4,7 @@
 
 ## 触发条件
 
-本 Skill **只通过一个显式命令触发**：
+本 Skill **只通过一个显式命令首次触发**：
 
 ```text
 /review-skill <PR / 文件 / Proposal / Skill>
@@ -18,7 +18,7 @@
 /review-skill <Skill Proposal>
 ```
 
-除此之外，其他方式都不得触发 Skill Reviewer，包括：
+除此之外，其他方式都不得首次触发 Skill Reviewer，包括：
 
 ```text
 review this skill
@@ -39,11 +39,34 @@ review PR #3 里的 skill 改动
 也就是说：
 
 - 没有前导 `/` 的 `review-skill` 不触发；
-- 自然语言中的 review / audit / inspect / evaluate / 评审 / 审计 不触发；
-- 即使对象明确是 Skill、SKILL.md、Skill Proposal 或包含 Skill 改动的 PR，也不能通过语义推断自动触发；
-- `/review-plan`、`/review-implementation` 和其他项目级 review workflow 与本 Skill 完全分离。
+- 自然语言中的 review / audit / inspect / evaluate / 评审 / 审计 不能首次触发；
+- 即使对象明确是 Skill、SKILL.md、Skill Proposal 或包含 Skill 改动的 PR，也不能通过语义推断自动首次触发；
+- `/review-plan`、`/review-implementation` 和其他项目级 review workflow 与本 Skill 的首次触发完全分离。
 
 `/review-skill` 用于让 AI 明确进入 Skill Reviewer 评审流程；它本身不是由 CLI 或程序注册的命令。
+
+## 同一会话连续 review
+
+`/review-skill <target>` 已在当前会话显式触发后，如果用户明确要求继续评审**同一个 target**，不需要再次输入 `/review-skill`。
+
+例如以下表达可视为同一 review 的 continuation：
+
+```text
+继续 review
+re-review 最新改动
+PR 更新了，再检查
+检查新的 review comments
+验证之前的 findings 是否解决
+```
+
+以下情况不能自动延续：
+
+- 开启新会话；
+- 切换到另一个 PR / Skill / Proposal；
+- 用户只是报告状态，例如“已经更新好了”，但没有要求继续 review；
+- 用户明确结束当前 review。
+
+新会话或切换 target 时，必须重新使用 `/review-skill <target>` 显式触发。
 
 ## 如何确认 Skill 已触发
 
@@ -67,7 +90,7 @@ Review target: PR #123
 
 这三个标记只表示 Skill 已触发并开始执行，不代表评审完成，也不代表评审对象已经通过。
 
-如果没有显式 `/review-skill`，则不应输出 `Skill activated: skill-reviewer`。
+如果没有显式 `/review-skill` 首次触发，且当前会话不存在有效的同-target review continuation，则不应输出 `Skill activated: skill-reviewer`。
 
 ## PR 多轮 review
 
