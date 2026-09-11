@@ -1,6 +1,6 @@
 # skill-reviewer-skill
 
-用于独立、专业地评审 AI Skill、Agent Skill、Workflow Skill 和 Prompt Skill，重点检查正确性、执行确定性、状态管理、失败处理、权限边界、OpenAI 官方 Skill guidance alignment 和可评审性。
+用于独立、专业地评审 AI Skill、Agent Skill、Workflow Skill 和 Prompt Skill，重点检查正确性、执行确定性、状态管理、失败处理、权限边界和可评审性。
 
 ## 触发条件
 
@@ -67,23 +67,6 @@ PR 更新了，再检查
 - 用户明确结束当前 review。
 
 新会话或切换 target 时，必须重新使用 `/review-skill <target>` 显式触发。
-
-## OpenAI 官方 Skill guidance
-
-每次完整 Skill review 都必须重新读取当前可访问、与 target 相关的 OpenAI 官方 Skill 资料，并把它们作为 review baseline，而不是依赖模型记忆或历史摘要。
-
-至少包括适用的：
-
-- OpenAI Help Center — Skills in ChatGPT；
-- OpenAI Academy — Using skills；
-- OpenAI Developers / API Reference — 当 target 涉及 API Skills 时的当前 Skills contract；
-- 其他由 OpenAI 官方当前发布且与 target 直接相关的 Skills / Agent Skills guidance。
-
-Reviewer 必须区分官方 requirement / product constraint、recommendation / design guidance 和 example。官方 recommendation 或 example 不能被机械提升为 blocking requirement。
-
-如果与结论相关的 OpenAI 官方 guidance 无法获取，且缺失 evidence 可能改变 compatibility / correctness / approval 判断，本轮必须使用 `REVIEW INCOMPLETE`。
-
-详细规则见 [`references/openai-official-skill-guidance.md`](./references/openai-official-skill-guidance.md)。
 
 ## 如何确认 Skill 已触发
 
