@@ -2,7 +2,7 @@
 name: skill-reviewer-skill
 description: 仅当用户显式调用 `/review-skill` 命令时，独立评审 AI Skill、Agent Skill、Workflow Skill、Prompt Skill，以及包含 Skill 变更的 Pull Request。自然语言 review、audit、inspect、evaluate、评审、审计请求，普通 PR review，以及其他 slash command 均不得触发本 Skill。
 metadata:
-  version: "1.2.0"
+  version: "1.2.1"
 ---
 
 # Skill Reviewer（Skill 评审器）
@@ -167,7 +167,40 @@ reviewer: skillpro
 
 随后写入 `reviewed-comment-id`、`reviewed-comment-version`、`reviewed-at-head`，再给出判断和建议。
 
-### 6. Final PR review 仍然独立执行
+只有在包含上述 marker 的回复已经成功持久化到 PR 后，该 comment event 才能计为 `processed`。
+
+如果 marker 写入失败：
+
+- 不得把该 event 标记为已处理；
+- 应在可用时尝试规范允许的替代持久化位置；
+- 如果本轮仍无法持久化 marker，则该 event 保持 pending，并按下面的 Comment Queue Gate 关闭最终评审 gate。
+
+### 6. Comment Queue Gate
+
+在发布 overall PR review、final review result 或 approval-class result 之前，必须重新计算 review-relevant comment queue，并验证 durable marker 状态。
+
+至少统计：
+
+```text
+discovered: <review-relevant 非 skillpro comment / reply 总数>
+already-reviewed: <当前版本已有有效 marker 的数量>
+processed-this-round: <本轮已 review 且 marker 写入成功的数量>
+pending: <仍无有效 marker 的数量>
+marker-write-failures: <本轮 marker 持久化失败的数量>
+```
+
+Gate 规则：
+
+- `pending` 必须为 `0`；
+- `marker-write-failures` 必须为 `0`；
+- 对本轮新处理的每个 event，必须能在 PR history 中重新读取到与当前 comment version 匹配的 marker；
+- 只有通过该 gate 后，才允许发布 overall PR review。
+
+如果因为工具、权限、API 能力、访问失败或其他 reviewer-side 原因无法使 Comment Queue Gate 通过，则不得静默继续或声称 comments 已全部处理；最终结果必须使用 `REVIEW INCOMPLETE`，并在 `Incomplete Evidence` 中说明无法持久化或验证的 marker 状态。
+
+每次 PR overall review 都必须输出 `Comment Review Status`，格式见 `references/review-output-format.md`。
+
+### 7. Final PR review 仍然独立执行
 
 历史 comments 只是 review context 和增量待处理队列，不能替代对当前 PR head 的独立完整评审。
 
@@ -277,7 +310,8 @@ reviewer: skillpro
 - 必需的被引用规范；
 - 本 Skill Reviewer 使用的必需规范性 reference 文件；
 - version identity needed for approval-class results；
-- 对 Pull Request review，完成本次判断所必需的 review history。
+- 对 Pull Request review，完成本次判断所必需的 review history；
+- 对 Pull Request review，pending comment event 的 durable marker 是否已经成功写入并可重新读取验证。
 
 如果必需输入在被评审包中确实缺失，是因为被评审 Skill 错误依赖了不存在的 artifact，则按正常 defect 处理。
 
@@ -340,7 +374,9 @@ reviewer: skillpro
 - review 进行过程中评审对象发生变化；
 - 旧 thread 已有 skillpro 回复，但 thread 中新增了实现者或其他 reviewer reply；
 - 已处理 comment 被编辑后内容发生变化；
-- PR head 改变但旧 comment 本身没有变化。
+- PR head 改变但旧 comment 本身没有变化；
+- comment 已完成分析但 marker 写入失败；
+- overall PR review 尝试在 pending comment event 尚未持久化处理前发布。
 
 ### Pass 4 — 简化审查
 
@@ -418,6 +454,8 @@ reviewer: skillpro
 
 当 reviewer 无法获得足够可靠证据来完成请求的 review 时，使用 `REVIEW INCOMPLETE`。`REVIEW INCOMPLETE` 总是关闭 gate，并且其本身不表示被评审 artifact 存在 defect。
 
+对于 Pull Request review，如果 Comment Queue Gate 无法通过（包括仍有 pending event 或 marker 持久化 / 回读失败），也必须使用 `REVIEW INCOMPLETE`；不得发布 `PASS`、`PASS WITH FOLLOW-UP`、`CHANGES REQUIRED` 或 `DESIGN DECISION REQUIRED` 作为本轮最终 overall PR result。
+
 ### `DESIGN DECISION REQUIRED` 判定规则
 
 先问：
@@ -453,7 +491,8 @@ reviewer: skillpro
 - 检查修订是否引入 regression；
 - 将新结果绑定到新的被评审版本；
 - artifact 发生变化后，不得继承之前的 approval；
-- 对 PR review，只增量处理新的或被编辑后的 comment event，不重复 review 已由 skillpro marker 标记为处理过的相同 comment version。
+- 对 PR review，只增量处理新的或被编辑后的 comment event，不重复 review 已由 skillpro marker 标记为处理过的相同 comment version；
+- 对 PR review，在发布整体 re-review 结果前必须重新通过 Comment Queue Gate。
 
 ## 修改边界
 
@@ -475,7 +514,8 @@ reviewer: skillpro
 - executive summary；
 - review identity；
 - findings status；
-- final gate 与 next action。
+- final gate 与 next action；
+- 对 Pull Request review，`Comment Review Status`。
 
 `Missing Scenarios`、`Overengineering / Simplification`、`Test Recommendations` 等条件性章节仅在确有意义时输出。
 
