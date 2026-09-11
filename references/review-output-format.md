@@ -89,6 +89,33 @@ marker-write-failures: 0
 
 如果无法满足，最终结果必须为 `REVIEW INCOMPLETE`，并在 `Incomplete Evidence` 中记录原因和恢复评审所需条件。
 
+## OpenAI Official Guidance Status
+
+每次完整 Skill review 都必须（MUST）包含本章节，用于说明本轮是否实际使用了当前 OpenAI 官方 Skill 资料，而不是依赖模型记忆或历史摘要。
+
+格式：
+
+```text
+## OpenAI Official Guidance Status
+
+checked: yes|no
+checked-at: <date/time or review timestamp>
+sources:
+- <OpenAI official source>
+- <OpenAI official source>
+applicable-requirements: <summary or none>
+applicable-recommendations: <summary or none>
+conflicts: <none or details>
+```
+
+要求：
+
+- `sources` 只列本轮实际读取的 OpenAI 官方来源；
+- 至少区分 official requirement / product constraint 与 recommendation / example；
+- 如果 target 涉及 OpenAI API Skills，应包含当前 Developers / API Reference Skills evidence；
+- 如果官方 guidance retrieval 不完整且可能影响 correctness / compatibility / approval 结论，`checked` 不得写 `yes`，最终结果必须为 `REVIEW INCOMPLETE`；
+- 不得仅引用 `references/openai-official-skill-guidance.md` 就声称已经检查当前官方资料。
+
 ## 必选章节
 
 每次完整 review 都必须（MUST）包含：
@@ -96,12 +123,13 @@ marker-write-failures: 0
 1. `Review Result`
 2. `Executive Summary`
 3. `Review Identity`
-4. `Findings`
-5. `Final Gate`
+4. `OpenAI Official Guidance Status`
+5. `Findings`
+6. `Final Gate`
 
 对于 Pull Request review，还必须包含：
 
-6. `Comment Review Status`
+7. `Comment Review Status`
 
 以下章节为条件性章节，仅在有实际意义时输出：
 
@@ -179,6 +207,16 @@ filename、branch name、URL、document title 等 mutable identifier 可以作�
 
 解决该 finding 所必需的具体修改。
 
+**Official guidance basis**
+
+如果 finding 基于 OpenAI 官方 Skill guidance，写明：
+
+- 官方来源；
+- evidence 类型：`requirement` / `recommendation` / `example`；
+- 为什么该 evidence 对当前 target 有约束力。
+
+如果 finding 与 OpenAI 官方 guidance 无关，则省略此字段。
+
 不要为纯 style preference 创建 finding，除非它会实质影响执行。
 
 如果没有 material findings，写：
@@ -197,7 +235,8 @@ filename、branch name、URL、document title 等 mutable identifier 可以作�
 - 不可用、不可读、被截断或其他不完整的 evidence；
 - 无法验证这些 evidence 的原因；
 - 恢复或完成 review 所需的 evidence；
-- 对 PR review，任何未成功持久化或无法回读验证的 comment marker。
+- 对 PR review，任何未成功持久化或无法回读验证的 comment marker；
+- 任何无法获取、但可能影响 compatibility / correctness / approval 结论的 OpenAI 官方 Skill guidance。
 
 除非 artifact 本身错误依赖了缺失或不存在的材料，否则不要把 reviewer-side evidence failure 描述成被评审 artifact 的 defect。
 
@@ -217,7 +256,7 @@ filename、branch name、URL、document title 等 mutable identifier 可以作�
 
 列出能够实质提高对被评审规则信心的测试。
 
-优先覆盖：blocking findings、failure paths、handoff、stale state、permissions、interruption recovery、self-approval、adversarial embedded instructions、incomplete evidence、version drift，以及多轮 PR review 中的新 comment、已编辑 comment、旧 thread 新 reply、comment 去重行为、marker persistence failure 和 Comment Queue Gate。
+优先覆盖：blocking findings、failure paths、handoff、stale state、permissions、interruption recovery、self-approval、adversarial embedded instructions、incomplete evidence、version drift，以及多轮 PR review 中的新 comment、已编辑 comment、旧 thread 新 reply、comment 去重行为、marker persistence failure、Comment Queue Gate、same-session continuation、new-session isolation、OpenAI official-guidance drift 和 requirement/recommendation classification。
 
 如果没有额外测试能够实质提高信心，则省略本章节。
 
@@ -230,6 +269,7 @@ filename、branch name、URL、document title 等 mutable identifier 可以作�
 - 下一步必须做什么；
 - 是否必须重新 review 完整的 revised artifact；
 - evidence set 是否完整；
+- OpenAI Official Guidance Status 是否完整；
 - 本次 result 适用于哪个 exact reviewed identity；
 - 对 PR review，Comment Queue Gate 是否通过。
 
@@ -243,6 +283,7 @@ filename、branch name、URL、document title 等 mutable identifier 可以作�
 - 哪些仍未解决；
 - 是否出现 regression 或 new findings；
 - 新的 reviewed version identity；
+- OpenAI 官方 guidance 是否已按本轮重新读取；
 - 对 PR review，本轮新增或被编辑的 review-relevant comment 是否已经处理；
 - 对 PR review，Comment Queue Gate 是否已经重新通过。
 
