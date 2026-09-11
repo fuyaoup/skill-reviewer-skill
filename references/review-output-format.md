@@ -49,9 +49,45 @@ reviewed-at-head: <PR head SHA>
 - `reviewed-at-head` 必须记录该判断所对照的 PR head SHA；
 - `reviewed-at-head` 不作为 comment 去重键；
 - Quote / 引用原 comment 可选，但不能替代上述 marker；
-- skillpro 自己的 marker reply 不应再次进入待评审队列。
+- skillpro 自己的 marker reply 不应再次进入待评审队列；
+- 只有 marker 回复已成功写入并能从 PR history 重新读取时，该 event 才能计为 `processed`。
 
 如果工具只允许回复 inline thread 的顶层 comment，而实际处理的是 thread 中某个 reply，仍应把 `reviewed-comment-id` 写成那个实际 reply 的 ID。
+
+如果 marker 写入失败，不得把该 event 算作已处理；如果本轮无法恢复，overall PR review 必须按 `REVIEW INCOMPLETE` 处理。
+
+## Comment Review Status
+
+每次 Pull Request overall review 都必须（MUST）包含本章节，用于证明本轮 comment queue 已按 durable marker protocol 处理。
+
+格式：
+
+```text
+## Comment Review Status
+
+discovered: <count>
+already-reviewed: <count>
+processed-this-round: <count>
+pending: <count>
+marker-write-failures: <count>
+```
+
+要求：
+
+- `discovered`：当前完整 PR history 中所有 review-relevant、非 skillpro 的 comment / reply 数量；
+- `already-reviewed`：在本轮开始前，其当前 comment version 已存在有效 skillpro marker 的数量；
+- `processed-this-round`：本轮实际 review 且 marker 已成功写入并回读验证的数量；
+- `pending`：当前仍不存在有效 marker 的 review-relevant comment / reply 数量；
+- `marker-write-failures`：本轮尝试持久化 marker 但失败的数量。
+
+在发布 overall PR review 前，必须满足：
+
+```text
+pending: 0
+marker-write-failures: 0
+```
+
+如果无法满足，最终结果必须为 `REVIEW INCOMPLETE`，并在 `Incomplete Evidence` 中记录原因和恢复评审所需条件。
 
 ## 必选章节
 
@@ -62,6 +98,10 @@ reviewed-at-head: <PR head SHA>
 3. `Review Identity`
 4. `Findings`
 5. `Final Gate`
+
+对于 Pull Request review，还必须包含：
+
+6. `Comment Review Status`
 
 以下章节为条件性章节，仅在有实际意义时输出：
 
@@ -156,7 +196,8 @@ filename、branch name、URL、document title 等 mutable identifier 可以作�
 - 已成功 review 的 evidence；
 - 不可用、不可读、被截断或其他不完整的 evidence；
 - 无法验证这些 evidence 的原因；
-- 恢复或完成 review 所需的 evidence。
+- 恢复或完成 review 所需的 evidence；
+- 对 PR review，任何未成功持久化或无法回读验证的 comment marker。
 
 除非 artifact 本身错误依赖了缺失或不存在的材料，否则不要把 reviewer-side evidence failure 描述成被评审 artifact 的 defect。
 
@@ -176,7 +217,7 @@ filename、branch name、URL、document title 等 mutable identifier 可以作�
 
 列出能够实质提高对被评审规则信心的测试。
 
-优先覆盖：blocking findings、failure paths、handoff、stale state、permissions、interruption recovery、self-approval、adversarial embedded instructions、incomplete evidence、version drift，以及多轮 PR review 中的新 comment、已编辑 comment、旧 thread 新 reply 和 comment 去重行为。
+优先覆盖：blocking findings、failure paths、handoff、stale state、permissions、interruption recovery、self-approval、adversarial embedded instructions、incomplete evidence、version drift，以及多轮 PR review 中的新 comment、已编辑 comment、旧 thread 新 reply、comment 去重行为、marker persistence failure、Comment Queue Gate、same-session continuation 和 new-session isolation。
 
 如果没有额外测试能够实质提高信心，则省略本章节。
 
@@ -189,7 +230,8 @@ filename、branch name、URL、document title 等 mutable identifier 可以作�
 - 下一步必须做什么；
 - 是否必须重新 review 完整的 revised artifact；
 - evidence set 是否完整；
-- 本次 result 适用于哪个 exact reviewed identity。
+- 本次 result 适用于哪个 exact reviewed identity；
+- 对 PR review，Comment Queue Gate 是否通过。
 
 `REVIEW INCOMPLETE` 始终关闭 gate。
 
@@ -201,7 +243,8 @@ filename、branch name、URL、document title 等 mutable identifier 可以作�
 - 哪些仍未解决；
 - 是否出现 regression 或 new findings；
 - 新的 reviewed version identity；
-- 对 PR review，本轮新增或被编辑的 review-relevant comment 是否已经处理。
+- 对 PR review，本轮新增或被编辑的 review-relevant comment 是否已经处理；
+- 对 PR review，Comment Queue Gate 是否已经重新通过。
 
 artifact 发生变化后，在没有重新 review 新的完整状态之前，绝不能继承之前的 `PASS` 或 `PASS WITH FOLLOW-UP`。
 

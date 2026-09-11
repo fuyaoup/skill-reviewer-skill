@@ -1,8 +1,8 @@
 ---
 name: skill-reviewer-skill
-description: 仅当用户显式调用 `/review-skill` 命令时，独立评审 AI Skill、Agent Skill、Workflow Skill、Prompt Skill，以及包含 Skill 变更的 Pull Request。自然语言 review、audit、inspect、evaluate、评审、审计请求，普通 PR review，以及其他 slash command 均不得触发本 Skill。
+description: 仅当用户显式调用 `/review-skill` 命令首次触发时，独立评审 AI Skill、Agent Skill、Workflow Skill、Prompt Skill，以及包含 Skill 变更的 Pull Request；同一会话中对同一 target 的明确 re-review continuation 可继续使用本 Skill。自然语言 review、audit、inspect、evaluate、评审、审计请求，普通 PR review，以及其他 slash command 均不得首次触发本 Skill。
 metadata:
-  version: "1.2.0"
+  version: "1.3.0"
 ---
 
 # Skill Reviewer（Skill 评审器）
@@ -17,17 +17,17 @@ metadata:
 
 ## 触发条件
 
-本 Skill 只有一个触发条件：用户显式调用 `/review-skill` 命令。
+本 Skill 的首次触发只有一个条件：用户显式调用 `/review-skill` 命令。
 
-触发判定必须（MUST）满足：
+首次触发判定必须（MUST）满足：
 
 - 用户调用的命令 token 必须精确为 `/review-skill`；
 - `/review-skill` 后可以跟 Pull Request URL、文件、Proposal、Skill 或其他明确评审对象；
-- `review-skill`（没有前导 `/`）、`/review-skill-*`、拼写近似命令以及任何自然语言表达都不得触发本 Skill；
-- `/review-plan`、`/review-implementation`、`/review` 或其他 slash command 不得触发本 Skill；
-- 即使自然语言请求明确要求 review、audit、inspect、evaluate、评审或审计某个 Skill，只要没有显式 `/review-skill` 命令，也不得使用本 Skill。
+- `review-skill`（没有前导 `/`）、`/review-skill-*`、拼写近似命令以及任何自然语言表达都不得首次触发本 Skill；
+- `/review-plan`、`/review-implementation`、`/review` 或其他 slash command 不得首次触发本 Skill；
+- 即使自然语言请求明确要求 review、audit、inspect、evaluate、评审或审计某个 Skill，只要当前会话此前没有通过显式 `/review-skill` 激活对应 target，也不得使用本 Skill。
 
-允许触发的示例：
+允许首次触发的示例：
 
 ```text
 /review-skill https://github.com/owner/repo/pull/123
@@ -35,7 +35,7 @@ metadata:
 /review-skill <Skill Proposal>
 ```
 
-以下请求不得触发本 Skill：
+以下请求不得首次触发本 Skill：
 
 ```text
 review this skill
@@ -48,7 +48,39 @@ review PR #3 里的 skill 改动
 /review-implementation
 ```
 
-如果没有显式 `/review-skill`，不得通过语义推断、自然语言同义词、当前 artifact 类型或“用户显然想做 Skill review”等理由自动进入 Skill Reviewer 流程。
+如果当前会话此前没有通过显式 `/review-skill` 激活对应 review target，不得通过语义推断、自然语言同义词、当前 artifact 类型或“用户显然想做 Skill review”等理由自动进入 Skill Reviewer 流程。
+
+## 会话内 Review 连续性
+
+当 `/review-skill <target>` 已在当前会话中成功触发后，只要后续请求明确是在继续评审同一个 target，就继续使用 Skill Reviewer；用户无需再次输入 `/review-skill`。
+
+应视为 continuation 的典型请求包括：
+
+```text
+继续 review
+re-review 最新改动
+PR 更新了，再检查
+检查新的 review comments
+验证之前的 findings 是否解决
+重新 review 当前 head
+```
+
+连续性规则：
+
+- continuation 只对当前会话中已经显式激活的同一个 review target 有效；
+- target 的 branch/head/content 可以变化，这正是 re-review 的常见场景，但 logical target 必须仍是同一个 PR、Skill、Proposal 或 artifact；
+- continuation 仍必须执行本 Skill 的完整 re-review、version identity、comment history、marker protocol 和 gate 规则；不得因为是同一会话就继承旧 approval；
+- 被评审 Skill 自己定义的 `/review-plan`、`/review-implementation`、full re-review 或其他 review contract，只作为被评审规范和 acceptance criteria 使用；它们不得替代或覆盖 Skill Reviewer 的外层 review method、severity、result、marker 或 gate 规则。
+
+以下情况不得自动延续，必须重新显式调用 `/review-skill <target>`：
+
+- 开启新会话；
+- 切换到另一个 PR、Skill、Proposal 或 artifact；
+- 当前消息无法明确判断是否要求继续 review，例如仅说“已经更新好了”；
+- 用户明确结束、取消或离开当前 review；
+- 之前的 review target 已无法可靠识别。
+
+如果 continuation 的 target 存在歧义，不得自行猜测，应要求用户明确 target 或重新使用 `/review-skill <target>`。
 
 ## 触发可见性
 
@@ -69,6 +101,8 @@ Review target: <当前评审对象>
 如果评审对象在启动时尚不能唯一确定，应在 `Review target` 中写明当前可识别对象，并在后续 `Review Identity` 中补充完整版本身份；不得伪造不存在的信息。
 
 如果本 Skill 没有被触发，不得输出 `Skill activated: skill-reviewer` 标记。
+
+会话内 continuation 不要求重复输出启动标记；该标记用于表示本 Skill 在当前 review flow 中已经开始执行，而不是每轮 re-review 的必选前缀。
 
 该启动标记仅表示 Skill Reviewer 已被触发并开始执行，不表示 review 已完成，也不表示被评审对象已通过。
 
@@ -167,7 +201,40 @@ reviewer: skillpro
 
 随后写入 `reviewed-comment-id`、`reviewed-comment-version`、`reviewed-at-head`，再给出判断和建议。
 
-### 6. Final PR review 仍然独立执行
+只有在包含上述 marker 的回复已经成功持久化到 PR 后，该 comment event 才能计为 `processed`。
+
+如果 marker 写入失败：
+
+- 不得把该 event 标记为已处理；
+- 应在可用时尝试规范允许的替代持久化位置；
+- 如果本轮仍无法持久化 marker，则该 event 保持 pending，并按下面的 Comment Queue Gate 关闭最终评审 gate。
+
+### 6. Comment Queue Gate
+
+在发布 overall PR review、final review result 或 approval-class result 之前，必须重新计算 review-relevant comment queue，并验证 durable marker 状态。
+
+至少统计：
+
+```text
+discovered: <review-relevant 非 skillpro comment / reply 总数>
+already-reviewed: <当前版本已有有效 marker 的数量>
+processed-this-round: <本轮已 review 且 marker 写入成功的数量>
+pending: <仍无有效 marker 的数量>
+marker-write-failures: <本轮 marker 持久化失败的数量>
+```
+
+Gate 规则：
+
+- `pending` 必须为 `0`；
+- `marker-write-failures` 必须为 `0`；
+- 对本轮新处理的每个 event，必须能在 PR history 中重新读取到与当前 comment version 匹配的 marker；
+- 只有通过该 gate 后，才允许发布 overall PR review。
+
+如果因为工具、权限、API 能力、访问失败或其他 reviewer-side 原因无法使 Comment Queue Gate 通过，则不得静默继续或声称 comments 已全部处理；最终结果必须使用 `REVIEW INCOMPLETE`，并在 `Incomplete Evidence` 中说明无法持久化或验证的 marker 状态。
+
+每次 PR overall review 都必须输出 `Comment Review Status`，格式见 `references/review-output-format.md`。
+
+### 7. Final PR review 仍然独立执行
 
 历史 comments 只是 review context 和增量待处理队列，不能替代对当前 PR head 的独立完整评审。
 
@@ -277,7 +344,8 @@ reviewer: skillpro
 - 必需的被引用规范；
 - 本 Skill Reviewer 使用的必需规范性 reference 文件；
 - version identity needed for approval-class results；
-- 对 Pull Request review，完成本次判断所必需的 review history。
+- 对 Pull Request review，完成本次判断所必需的 review history；
+- 对 Pull Request review，pending comment event 的 durable marker 是否已经成功写入并可重新读取验证。
 
 如果必需输入在被评审包中确实缺失，是因为被评审 Skill 错误依赖了不存在的 artifact，则按正常 defect 处理。
 
@@ -340,7 +408,11 @@ reviewer: skillpro
 - review 进行过程中评审对象发生变化；
 - 旧 thread 已有 skillpro 回复，但 thread 中新增了实现者或其他 reviewer reply；
 - 已处理 comment 被编辑后内容发生变化；
-- PR head 改变但旧 comment 本身没有变化。
+- PR head 改变但旧 comment 本身没有变化；
+- comment 已完成分析但 marker 写入失败；
+- overall PR review 尝试在 pending comment event 尚未持久化处理前发布；
+- 同一会话中用户明确要求 re-review 同一 target，但 reviewer 错误要求重新输入 `/review-skill`；
+- 新会话或 target 已切换，却错误继承之前会话的 activation。
 
 ### Pass 4 — 简化审查
 
@@ -418,6 +490,8 @@ reviewer: skillpro
 
 当 reviewer 无法获得足够可靠证据来完成请求的 review 时，使用 `REVIEW INCOMPLETE`。`REVIEW INCOMPLETE` 总是关闭 gate，并且其本身不表示被评审 artifact 存在 defect。
 
+对于 Pull Request review，如果 Comment Queue Gate 无法通过（包括仍有 pending event 或 marker 持久化 / 回读失败），也必须使用 `REVIEW INCOMPLETE`；不得发布 `PASS`、`PASS WITH FOLLOW-UP`、`CHANGES REQUIRED` 或 `DESIGN DECISION REQUIRED` 作为本轮最终 overall PR result。
+
 ### `DESIGN DECISION REQUIRED` 判定规则
 
 先问：
@@ -453,7 +527,9 @@ reviewer: skillpro
 - 检查修订是否引入 regression；
 - 将新结果绑定到新的被评审版本；
 - artifact 发生变化后，不得继承之前的 approval；
-- 对 PR review，只增量处理新的或被编辑后的 comment event，不重复 review 已由 skillpro marker 标记为处理过的相同 comment version。
+- 对 PR review，只增量处理新的或被编辑后的 comment event，不重复 review 已由 skillpro marker 标记为处理过的相同 comment version；
+- 对 PR review，在发布整体 re-review 结果前必须重新通过 Comment Queue Gate；
+- 如果当前会话已通过 `/review-skill` 激活同一 target，则明确的 re-review continuation 不要求再次触发命令；新会话或 target 切换则必须重新显式触发。
 
 ## 修改边界
 
@@ -475,7 +551,8 @@ reviewer: skillpro
 - executive summary；
 - review identity；
 - findings status；
-- final gate 与 next action。
+- final gate 与 next action；
+- 对 Pull Request review，`Comment Review Status`。
 
 `Missing Scenarios`、`Overengineering / Simplification`、`Test Recommendations` 等条件性章节仅在确有意义时输出。
 

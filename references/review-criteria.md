@@ -140,7 +140,8 @@ Chat history 不应静默成为需要 durable continuation 的 workflow 的唯�
 - 已处理 comment 被编辑后是否能检测并重新 review；
 - skillpro 自己的 marker 回复是否会被排除，避免自我循环；
 - 旧 comment 本身未变化时，PR head 改变是否不会导致重复 comment review；
-- 最终 current-head review 是否仍独立执行，不被 comment queue 取代。
+- 最终 current-head review 是否仍独立执行，不被 comment queue 取代；
+- marker 是否真正持久化并能回读验证，而不是只在 reviewer 内部认为“已经处理”。
 
 ## I. 版本身份
 
@@ -242,7 +243,10 @@ Skill 必须定义失败后 Agent 做什么，而不能只定义 happy path。
 - edited-comment re-review tests；
 - new-reply-in-old-thread tests；
 - skillpro-self-comment exclusion tests；
-- PR-head-changed-but-comment-unchanged dedup tests。
+- PR-head-changed-but-comment-unchanged dedup tests；
+- marker persistence / readback failure tests；
+- same-session continuation tests；
+- new-session / switched-target non-continuation tests。
 
 如果某规则不可测试，应追问如何证明 Agent 符合该规则。
 
